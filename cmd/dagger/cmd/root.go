@@ -25,7 +25,7 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.PersistentFlags().String("log-format", "auto", "Log format (auto, plain, tty, json)")
-	rootCmd.PersistentFlags().StringP("log-level", "l", "info", "Log level")
+	rootCmd.PersistentFlags().StringP("log-level", "l", "info", "Log level (info, debug, trace)")
 
 	rootCmd.PersistentFlags().Bool("no-cache", false, "Disable caching")
 	rootCmd.PersistentFlags().StringArray("cache-to", []string{},

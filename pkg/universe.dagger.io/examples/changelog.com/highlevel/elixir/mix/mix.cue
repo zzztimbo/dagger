@@ -7,23 +7,24 @@ import (
 	"universe.dagger.io/docker"
 )
 
-// Build an Elixir application with Mix
-#Build: {
+// Get Elixir dependencies
+#Get: {
 	// Ref to base image
 	// FIXME: spin out docker.#Build for max flexibility
-	//   Perhaps implement as a custom docker.#Build step?
+	// Perhaps implement as a custom docker.#Build step?
 	base: docker.#Ref
 
 	// App name (for cache scoping)
 	app: string
 
-	// Mix environment
-	env: string
-
 	// Application source code
 	source: dagger.#FS
 
 	docker.#Build & {
+		// DISCUSS:
+		// If the output of the previous step is used as the input of the next step,
+		// then "steps" is the wrong name for this.
+		// "pipeline" sounds better - I am thinking about the UNIX & Elixir "pipe"
 		steps: [
 			// 1. Pull base image
 			docker.#Pull & {
@@ -37,43 +38,57 @@ import (
 			// 3. Download dependencies into deps cache
 			#Run & {
 				mix: {
-					"env":     env
 					"app":     app
-					depsCache: "locked"
+					depsCache: "shared"
 				}
 				workdir: "/app"
 				script:  "mix deps.get"
-			},
-			// 4. Build!
-			// FIXME: step 5 is to add image data, see issue 1339
-			#Run & {
-				mix: {
-					"env":      env
-					"app":      app
-					depsCache:  "private"
-					buildCache: "locked"
-				}
-				workdir: "/app"
-				script:  "mix do deps.compile, compile"
 			},
 		]
 	}
 }
 
-// Run mix correctly in a container
+// Compile Elixir dependencies, including the app
+#Compile: {
+	// Ref to base image
+	// FIXME: spin out docker.#Build for max flexibility
+	// Perhaps implement as a custom docker.#Build step?
+	base: docker.#Ref
+
+	// App name (for cache scoping)
+	app: string
+
+	// Mix environment
+	app_env: string
+
+	// Application source code
+	source: dagger.#FS
+
+	#Run & {
+		mix: {
+			"app":      app
+			"env":      app_env
+			depsCache:  "private"
+			buildCache: "locked"
+		}
+		workdir: "/app"
+		script:  "mix do deps.compile, compile"
+	}
+}
+
+// Run mix task with all necessary mounts so compiled artefacts get cached
 #Run: {
 	mix: {
 		app: string
-		env: string
+		env: string | *""
 		// FIXME: "ro" | "rw"
-		depsCache?:  "private" | "locked"
-		buildCache?: "private" | "locked"
+		depsCache?:  "private" | "locked" | "shared"
+		buildCache?: "private" | "locked" | "shared"
 	}
 	docker.#Run
 	env: MIX_ENV: mix.env
 	workdir: string
-	{
-		mix: depsCache: string
+	if mix.depsCache != _|_ {
 		mounts: depsCache: {
 			contents: engine.#CacheDir & {
 				id:          "\(mix.app)_deps"
@@ -81,9 +96,8 @@ import (
 			}
 			dest: "\(workdir)/deps"
 		}
-	} | {}
-	{
-		mix: buildCache: string
+	}
+	if mix.buildCache != _|_ {
 		mounts: buildCache: {
 			contents: engine.#CacheDir & {
 				id:          "\(mix.app)_deps"
@@ -91,5 +105,5 @@ import (
 			}
 			dest: "\(workdir)/deps"
 		}
-	} | {}
+	}
 }
