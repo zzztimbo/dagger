@@ -20,17 +20,17 @@ dagger.#Plan & {
 			docker: _
 		}
 		params: {
+			app: name: "changelog"
 			// Which Elixir base image to download
-			runtime_image: docker.#Ref | *"thechangelog/runtime:2021-05-29T10.17.12Z"
+			runtime: image: docker.#Ref | *"thechangelog/runtime:2021-05-29T10.17.12Z"
 			// Which test DB image to download
-			test_db_image: docker.#Ref | *"circleci/postgres:12.6"
+			test_db: image: docker.#Ref | *"circleci/postgres:12.6"
 		}
 	}
 
 	// Do things
 	actions: {
 		// Reuse in all mix commands
-		_appName: "changelog"
 
 		// prod: assets: docker.#Build & {
 		//  steps: [
@@ -61,21 +61,25 @@ dagger.#Plan & {
 		// }
 
 		deps: mix.#Get & {
-			app:    "thechangelog"
-			base:   inputs.params.runtime_image
+			mix: {
+				app: inputs.params.app.name
+			}
+			base:   inputs.params.app.image
 			source: inputs.directories.app.contents
 		}
 		dev: mix.#Compile & {
-			app:     "thechangelog"
-			app_env: "dev"
-			input:   deps.output
+			mix: {
+				app: inputs.params.app.name
+				env: "dev"
+			}
+			input: deps.output
 		}
 
 		// dev: {
 		// compile: mix.#Compile & {
 		//  env:    "dev"
 		//  app:    "thechangelog"
-		//  base:   inputs.params.runtime_image
+		//  base:   inputs.params.runtimeImage
 		//  source: inputs.directories.app.contents
 		// }
 
@@ -115,7 +119,7 @@ dagger.#Plan & {
 		//  build: mix.#Build & {
 		//   env:    "test"
 		//   app:    _appName
-		//   base:   inputs.params.runtime_image
+		//   base:   inputs.params.runtimeImage
 		//   source: inputs.directories.app.contents
 		//  }
 
