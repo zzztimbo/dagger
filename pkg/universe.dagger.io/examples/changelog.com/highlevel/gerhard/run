@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-
-# DAGGER_EUROPA=true
-dagger up --log-level=debug --log-format=plain --europa

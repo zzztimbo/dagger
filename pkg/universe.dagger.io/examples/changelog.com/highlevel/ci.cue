@@ -12,17 +12,35 @@ dagger.#Plan & {
 	// Receive things from client
 	inputs: {
 		directories: {
-			// App source code
-			app: _
+			app: {
+				// Path to app source code
+				path: string
+				include: [
+					"assets",
+					"config",
+					"docker",
+					"lib",
+					"priv/grafana_dashboards",
+					"priv/honeycomb_dashboards",
+					"priv/repo",
+					"priv/static",
+					"test",
+					".*.exs",
+					"Makefile",
+					"coveralls.json",
+					"mix.*",
+				]
+			}
 		}
 		secrets: {
 			// Docker ID password
 			docker: _
 		}
 		params: {
-			app: name: "changelog"
-			// Which Elixir base image to download
-			runtime: image: docker.#Ref | *"thechangelog/runtime:2021-05-29T10.17.12Z"
+			app: {
+				name:  "changelog"
+				image: docker.#Ref | *"thechangelog/runtime:2021-05-29T10.17.12Z"
+			}
 			// Which test DB image to download
 			test_db: image: docker.#Ref | *"circleci/postgres:12.6"
 		}
@@ -60,11 +78,15 @@ dagger.#Plan & {
 		//  ]
 		// }
 
+		app: image: docker.#Pull & {
+			source: inputs.params.app.image
+		}
+
 		deps: mix.#Get & {
 			mix: {
 				app: inputs.params.app.name
 			}
-			base:   inputs.params.app.image
+			image:  app.image.output
 			source: inputs.directories.app.contents
 		}
 		dev: mix.#Compile & {
@@ -72,7 +94,8 @@ dagger.#Plan & {
 				app: inputs.params.app.name
 				env: "dev"
 			}
-			input: deps.output
+			image:  deps.output
+			source: inputs.directories.app.contents
 		}
 
 		// dev: {

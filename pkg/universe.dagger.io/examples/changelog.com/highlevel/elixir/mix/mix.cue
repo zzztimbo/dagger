@@ -9,60 +9,19 @@ import (
 
 // Get Elixir dependencies
 #Get: {
-	// Ref to base image
-	// FIXME: spin out docker.#Build for max flexibility
-	// Perhaps implement as a custom docker.#Build step?
-	base: docker.#Ref
-
-	mix: {
-		app: string
-	}
-
-	// Application source code
-	source: dagger.#FS
-
-	docker.#Build & {
-		// DISCUSS:
-		// If the output of the previous step is used as the input of the next step,
-		// then "steps" is the wrong name for this.
-		// "pipeline" sounds better - I am thinking about the UNIX & Elixir "pipe"
-		steps: [
-			// 1. Pull base image
-			docker.#Pull & {
-				source: base
-			},
-			// 2. Copy app source
-			docker.#Copy & {
-				contents: source
-				dest:     "/app"
-			},
-			// 3. Download dependencies into deps cache
-			#Run & {
-				mix: {
-					"app":     app
-					depsCache: "shared"
-				}
-				workdir: "/app"
-				script:  "mix deps.get"
-			},
-		]
-	}
-}
-
-#Get: {
 	// Application source code
 	source: dagger.#FS
 
 	#Run & {
 		mix: {
-			buildCache: "locked"
-			depsCache:  "private"
+			depsCache: "locked"
+			env:       null
 		}
 		mounts: "app": {
 			contents: source
 			dest:     "/app"
 		}
-		script:  "mix do deps.compile, compile"
+		script:  "mix deps.get"
 		workdir: "/app"
 	}
 }
@@ -75,7 +34,8 @@ import (
 	#Run & {
 		mix: {
 			buildCache: "locked"
-			depsCache:  "private"
+			depsCache:  "locked"
+			env:        string
 		}
 		mounts: "app": {
 			contents: source
@@ -91,13 +51,15 @@ import (
 #Run: {
 	mix: {
 		app: string
-		env: string | *""
+		env: string | null
 		// FIXME: "ro" | "rw"
-		depsCache:  *null | "private" | "locked" | "shared"
-		buildCache: *null | "private" | "locked" | "shared"
+		depsCache:  *null | "locked"
+		buildCache: *null | "locked"
 	}
 	docker.#Run
-	env: MIX_ENV: mix.env
+	if mix.env != null {
+		env: MIX_ENV: mix.env
+	}
 	workdir: string
 	if mix.depsCache != null {
 		mounts: depsCache: {
