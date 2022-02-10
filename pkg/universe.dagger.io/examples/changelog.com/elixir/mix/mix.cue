@@ -11,20 +11,21 @@ import (
 	// Applies to all environments
 	env: null
 	cache: {
+		// We are just downloading deps, no need for the build mount
 		build: null
-		deps:  "locked"
+		deps:  "shared"
 	}
 	container: command: {
 		name: "sh"
-		flags: "-c": "mix do deps.get"
+		flags: "-c": "mix deps.get"
 	}
 }
 
 // Compile Elixir dependencies, including the app
 #Compile: #Run & {
 	cache: {
-		build: "locked"
-		deps:  "locked"
+		build: "shared"
+		deps:  "shared"
 	}
 	container: command: {
 		name: "sh"
@@ -50,10 +51,10 @@ import (
 	// FIXME: simpler interface, eg. "ro" | "rw"
 	cache: {
 		// Dependencies cache
-		deps: null | "locked"
+		deps: null | "shared"
 
 		// Build cache
-		build: null | "locked"
+		build: null | "shared"
 	}
 
 	// Run mix in a docker container

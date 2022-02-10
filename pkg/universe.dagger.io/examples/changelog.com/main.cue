@@ -12,8 +12,25 @@ dagger.#Plan & {
 	// Receive things from client
 	inputs: {
 		directories: {
-			// App source code
-			app?: _
+			app?: {
+				// Path to app source code
+				path: string
+				include: [
+					"assets",
+					"config",
+					"docker",
+					"lib",
+					"priv/grafana_dashboards",
+					"priv/honeycomb_dashboards",
+					"priv/repo",
+					"priv/static",
+					"test",
+					".*.exs",
+					"Makefile",
+					"coveralls.json",
+					"mix.*",
+				]
+			}
 		}
 		secrets: {
 			// Docker ID password
@@ -32,7 +49,6 @@ dagger.#Plan & {
 				// Address of test db image
 				db: image: docker.#Ref | *"circleci/postgres:12.6"
 			}
-
 		}
 	}
 
@@ -61,23 +77,68 @@ dagger.#Plan & {
 			image: base.output
 
 			// Download Elixir dependencies
-			deps: mix.#Get & {
+			deps_get: mix.#Get & {
 				app: {
 					"name":   name
 					"source": source
 				}
-				container: "image": image
+				container: input: image
 			}
 
-			// Compile dev environment
-			dev: mix.#Compile & {
-				env: "dev"
+			test_env_compile: mix.#Compile & {
+				env: "test"
 				app: {
 					"name":   name
 					"source": source
 				}
-				container: "image": image
+				container: input: deps_get.container.output
 			}
+
+			prod_env_compile: mix.#Compile & {
+				env: "prod"
+				app: {
+					"name":   name
+					"source": source
+				}
+				container: input: deps_get.container.output
+			}
+
+			// vvv CONTINUE vvv
+			static_assets_compile: {
+				container: input: image
+			}
+
+			static_assets_digest: {
+				container: input: static_assets_compile.container.output
+			}
+
+			// Copies mounts from:
+			// - deps_get
+			// - prod_env_compile
+			// - static_assets_digest
+			//
+			// 🤔 How to depend on multiple actions?
+			// 1. prod_env_compile
+			// 2. static_assets_digest
+			prod_image_build: {}
+
+			// Start PostgreSQL container
+			test_db_start: {}
+
+			// Run tests against PostgreSQL container
+			test: {
+				container: input: test_env_compile.container.output
+			}
+
+			test_db_stop: {
+				container: input: test.container.output
+			}
+
+			// 🤔 How to depend on multiple actions?
+			// 1. prod_image_build
+			// 2. test
+			// Be optimistic and tag container image locally
+			prod_image_publish: {}
 		}
 	}
 }
