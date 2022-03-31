@@ -22,7 +22,7 @@ function Form(props) {
     <form onSubmit={handleSubmit}>
       <h2 className="label-wrapper">
         <label htmlFor="new-todo-input" className="label__lg">
-          What must be done right now?
+          What's on fire?
         </label>
       </h2>
 
