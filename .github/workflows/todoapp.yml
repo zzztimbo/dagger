@@ -10,10 +10,10 @@ on:
 
 env:
   # This needs to be unique across all of Netlify
-  # APP_NAME: todoapp-dagger-europa
-  # NETLIFY_TEAM: blocklayer
+  APP_NAME: ${{ secrets.APP_NAME }} 
+  NETLIFY_TEAM: ${{ secrets.NETLIFY_TEAM }} 
   # https://app.netlify.com/user/applications/personal
-  # NETLIFY_TOKEN: ${{ secrets.NETLIFY_TOKEN }}
+  NETLIFY_TOKEN: ${{ secrets.NETLIFY_TOKEN }}
   DAGGER_LOG_FORMAT: plain
 
 jobs:
