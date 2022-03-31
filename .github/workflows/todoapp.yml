@@ -10,15 +10,16 @@ on:
 
 env:
   # This needs to be unique across all of Netlify
-  APP_NAME: todoapp-dagger-europa
-  NETLIFY_TEAM: blocklayer
+  # APP_NAME: todoapp-dagger-europa
+  # NETLIFY_TEAM: blocklayer
   # https://app.netlify.com/user/applications/personal
-  NETLIFY_TOKEN: ${{ secrets.NETLIFY_TOKEN }}
+  # NETLIFY_TOKEN: ${{ secrets.NETLIFY_TOKEN }}
   DAGGER_LOG_FORMAT: plain
 
 jobs:
   dagger:
     name: "Deploy todoapp to Netlify"
+    environment: netlify 
     runs-on: ubuntu-latest
     steps:
       - name: "Clone repository"
